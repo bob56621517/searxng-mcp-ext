@@ -96,8 +96,25 @@ images  : baidu images, quark images, sogou images
 
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
-| `BOCHA_API_KEY` | (空) | 博查 API key |
-| `PORT` | `8888` | 宿主侧映射端口(容器内固定 8080) |
+| `BOCHA_API_KEY` | (空) | 博查 API key。未设置时 bocha 引擎不启用 |
+| `GITHUB_TOKEN` | (空) | 提高 `github code` 配额。未设置则回退匿名模式(限流较严) |
+| `BRAVE_API_KEY` | (空) | 启用 `braveapi`。未设置则保持关闭 |
+| `SEARXNG_ENGINES` | (空) | 引擎白名单,逗号分隔 —— **整体替换**默认的 21 个 |
+| `SEARXNG_ENGINES_EXCLUDE` | (空) | 从清单中**剔除**的引擎,逗号分隔 |
+
+**全部可选。一个都不设 = 上面描述的默认行为。**
+
+```bash
+# 只留中文源 + GitHub
+SEARXNG_ENGINES="baidu,360search,sogou,quark,bocha,github" docker compose up -d
+
+# 保留默认清单,但去掉视频类
+SEARXNG_ENGINES_EXCLUDE="bilibili,iqiyi,acfun,360search videos,sogou videos" docker compose up -d
+```
+
+**注意**:`GITHUB_TOKEN` / `BRAVE_API_KEY` 这些密钥**不会落进配置文件**——启动时由 `ext-apply-env.sh` 注入到容器内的临时 settings,容器重建即重新注入,密钥不进镜像也不进仓库。
+
+**关于端口的说明**:对外端口固定为 **8888**(容器内 8080)。这是架构决定,没做成可调参数——需要的话直接改 `docker-compose.yml` 里的 `ports`。
 
 要改引擎清单、或者给 `braveapi` / `github code` 填密钥,挂载自己的配置文件:
 

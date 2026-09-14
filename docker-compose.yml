@@ -18,18 +18,36 @@ services:
     container_name: searxng-mcp-ext
     restart: unless-stopped
 
-    # 容器内固定监听 8080;宿主侧默认 8888,可用 PORT 覆盖。
+    # 宿主侧固定 8888,容器内固定 8080。
+    # 这是架构决定,不做成可调参数 —— 需要的话直接改这一行。
     ports:
-      - "${PORT:-8888}:8080"
+      - "8888:8080"
 
     environment:
-      # 博查(bocha)API key,可选。
-      # 不设置时该引擎不可用(请求会返回 401),其余引擎照常工作。
+      # ---- 密钥(全部可选) ----
+      # 博查 API key。不设置时 bocha 引擎不启用,其余引擎照常工作。
       # 该 key 由引擎直接读环境变量,不落配置文件。
       BOCHA_API_KEY: "${BOCHA_API_KEY:-}"
 
-      # 经变量名覆盖 SearXNG 的监听端口。留空则用镜像内的 8080。
-      # 通常不需要动 —— 改外部映射用上面的 PORT 即可。
+      # GitHub token。设置后 github code 引擎走认证模式(配额更高);
+      # 不设置则回退匿名模式(限流较严)。
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+
+      # Brave Search API key。设置后 braveapi 引擎启用;不设置则保持关闭。
+      BRAVE_API_KEY: "${BRAVE_API_KEY:-}"
+
+      # ---- 引擎清单覆盖(可选) ----
+      # 都不设置时,使用镜像内默认的 21 个引擎。
+      #
+      #   SEARXNG_ENGINES          白名单,逗号分隔 —— 整体替换默认清单
+      #   SEARXNG_ENGINES_EXCLUDE  黑名单,逗号分隔 —— 从清单中剔除
+      #
+      # 例:
+      #   SEARXNG_ENGINES: "google,bing,baidu,sogou,quark,bocha"
+      #   SEARXNG_ENGINES_EXCLUDE: "bilibili,iqiyi,acfun"
+      #
+      # 这些变量由 ext-apply-env.sh 在容器启动时应用到 settings.yml。
+      # 引擎的启用与否是部署决策,因此只走配置,不暴露为 MCP 工具参数。
 
     # 可选:覆盖镜像内的默认配置。
     # 镜像自带的 settings.yml 已经配好中文引擎清单与 JSON 输出格式;

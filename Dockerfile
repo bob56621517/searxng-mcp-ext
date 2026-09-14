@@ -35,15 +35,30 @@ COPY searxng/engines/ /usr/local/searxng/searx/engines/
 # ---- 3. 注入 ASGI 组合入口 --------------------------------------------------
 COPY ext_http.py /usr/local/searxng/ext_http.py
 
-# ---- 4. 把启动方式从 WSGI 改为 ASGI -----------------------------------------
-# 不重写官方 entrypoint,只替换它的最后一行 —— 保留官方的 volume 检查、
+# ---- 3b. 注入「环境变量 → settings.yml」应用脚本 ----------------------------
+COPY ext-apply-env.sh /usr/local/searxng/ext-apply-env.sh
+RUN sed -i 's/\r$//' /usr/local/searxng/ext-apply-env.sh \
+ && chmod +x /usr/local/searxng/ext-apply-env.sh
+
+# ---- 4. 改写官方 entrypoint 的启动行 ----------------------------------------
+# 不重写官方 entrypoint,只改它的最后一行 —— 保留官方的 volume 检查、
 # settings.yml 生成、权限修正等全部逻辑。
-# grep 兜底:若上游改了这行导致替换失败,构建立即报错,而不是静默降级成"没有 MCP"。
+#
+#   1) WSGI → ASGI:改 granian 的加载目标
+#   2) 在 exec 之前插入环境变量应用脚本(用 `;` 连成单行,避免多行 sed 的
+#      实现差异;busybox sed 与 GNU sed 对替换串里 \n 的处理并不一致)
+#
+# 两处都带 grep 兜底:上游一旦改动这行,构建立即失败,而不是静默降级成
+# 「没有 MCP」或「环境变量不生效」。
 RUN sed -i \
       's|granian searx\.webapp:app|granian --interface asgi ext_http:app|' \
       /usr/local/searxng/entrypoint.sh \
  && grep -q 'ext_http:app' /usr/local/searxng/entrypoint.sh \
- && echo "[build] entrypoint patched: now serving ASGI ext_http:app"
+ && sed -i \
+      's|^exec /usr/local/searxng/\.venv/bin/granian|/usr/local/searxng/ext-apply-env.sh; exec /usr/local/searxng/.venv/bin/granian|' \
+      /usr/local/searxng/entrypoint.sh \
+ && grep -q 'ext-apply-env.sh' /usr/local/searxng/entrypoint.sh \
+ && echo "[build] entrypoint patched: ASGI + env injection"
 
 # ext_http.py 与 searx 包同在 /usr/local/searxng 下,需让 Python 能找到它
 ENV PYTHONPATH=/usr/local/searxng

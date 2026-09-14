@@ -10,9 +10,13 @@
 # 此时官方 entrypoint 检测到文件已存在,不会覆盖。
 
 # 仅保留下方 engines 清单内的引擎,其余上游默认引擎全部排除。
+#
+# 下面标了 ext:keep-only 的清单会被 ext-apply-env.sh 按环境变量
+# SEARXNG_ENGINES / SEARXNG_ENGINES_EXCLUDE 重写;不设变量时保持原样。
 use_default_settings:
   engines:
     keep_only:
+      # >>> ext:keep-only:begin
       # 通用
       - google
       - bing
@@ -40,6 +44,7 @@ use_default_settings:
       - baidu images
       - quark images
       - sogou images
+      # >>> ext:keep-only:end
 
 server:
   secret_key: "ultrasecretkey"
@@ -131,14 +136,16 @@ engines:
     timeout: 10.0
 
   # ---------- Brave Search API ----------
-  # 官方 API、稳定不被反爬,但需要 API key(2026-02 起取消免费档)。
-  # 默认不启用;挂载自己的 settings.yml 填入 api_key 后改为 inactive: false。
+  # 官方 API、稳定不被反爬,但需要 API key(2026-02 起取消免费档,需绑卡)。
+  #
+  # 默认不启用。设置了环境变量 BRAVE_API_KEY 时,ext-apply-env.sh 会把这里
+  # 翻成 inactive: false 并填入密钥;未设置则保持关闭。
   - name: braveapi
     engine: braveapi
     shortcut: bv
     categories: [general]
     inactive: true
-    api_key: ""
+    api_key: "$BRAVE_API_KEY"
 
   # ======================== 技术 ========================
 
@@ -148,9 +155,10 @@ engines:
     categories: [it, repos]
     disabled: false
 
-  # GitHub 代码搜索:匿名模式(限流较严)。
-  # 如需提高配额,挂载自己的 settings.yml,把 type 改为
-  # personal_access_token 并填入 token。
+  # GitHub 代码搜索。
+  #
+  # 设置了环境变量 GITHUB_TOKEN 时,ext-apply-env.sh 会替换下方的 token 并把
+  # type 切成 personal_access_token;未设置则回退匿名模式(限流较严)。
   #
   # inactive 必须显式置 false —— 上游默认定义里它是 true(因为默认要求 token),
   # 而本文件的 engines 段只做「按名字合并」,不写的键会保留上游默认值。
@@ -161,7 +169,8 @@ engines:
     disabled: false
     inactive: false
     ghc_auth:
-      type: "none"
+      type: "personal_access_token"
+      token: "$GITHUB_TOKEN"
 
   - name: baidu kaifa
     engine: baidu
