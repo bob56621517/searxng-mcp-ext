@@ -8,12 +8,22 @@
 
 ## 快速开始
 
-```bash
-# 可选:填入博查 API key 以获得付费兜底能力
-export BOCHA_API_KEY=你的key
+**一条命令即可启动,不需要任何前置配置:**
 
+```bash
 docker compose up -d
 ```
+
+博查 API key 是**可选的**。不设置时服务照常工作——bocha 引擎会被静默跳过,
+其余引擎(google / bing / 百度 / 360 / 搜狗 / 夸克 / github 等)不受任何影响。
+想启用付费兜底能力时再带上:
+
+```bash
+export BOCHA_API_KEY=你的key
+docker compose up -d
+```
+
+> 默认对外端口是 `8888`。被占用时:`PORT=9000 docker compose up -d`
 
 起好后:
 
@@ -73,10 +83,14 @@ images  : baidu images, quark images, sogou images
 
 | 引擎 | 说明 |
 |---|---|
-| `bocha` | 付费兜底,**需要 `BOCHA_API_KEY`**。未设置时该引擎不工作,其余引擎不受影响 |
+| `bocha` | 付费兜底,权重最高。**需要 `BOCHA_API_KEY`;未设置时静默跳过**,不影响其余引擎 |
 | `braveapi` | **默认不启用**,需要 `BRAVE_API_KEY` |
 | `github code` | 默认匿名模式(限流较严)。有 token 可挂载配置提高配额 |
 | `chinaso news` | 返回加密跳转链接,结果会带 `fetch_url_mode` 标记 |
+
+> **怎么判断某个引擎到底有没有生效?** 看搜索响应里的 `unresponsive_engines`
+> 字段 —— 那是**运行时**的真实状态。`/config` 只反映静态配置,它会把所有
+> 在 `settings.yml` 里声明过的引擎都列出来,**即使某个引擎因缺少密钥而没被注册**。
 
 ## 配置
 

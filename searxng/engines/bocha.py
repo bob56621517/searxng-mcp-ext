@@ -82,9 +82,16 @@ _bocha_count = 50
 def init(engine_settings):
     """初始化:读取 settings.yml 中 bocha 条目的 ``api_key`` 与 ``count``.
 
-    未配置 ``BOCHA_API_KEY`` 时也启用引擎;此时若调用方请求头提供 key,
-    仍可访问 bocha。无 key 的请求会在 bocha API 侧返回认证错误,searxng
-    会隔离该引擎,不影响其它聚合源。
+    未配置 ``BOCHA_API_KEY`` 时返回 ``False``,让 searxng 跳过本引擎(不启用),
+    而不是每次搜索都白发一次注定 401 的请求——bocha 作为兜底源,不该在没配
+    key 时拖累其它聚合源。
+
+    .. note::
+
+       上游 agent-tool-layer 的同名引擎在此处返回 ``True``,配合「无 key 也
+       启用、由客户端请求头提供 key」的设计。但 SearXNG 的引擎拿不到入站
+       HTTP 请求头(``RequestParams`` 中根本没有该字段),那个前提不成立。
+       本项目改为由环境变量注入 key,因此这里恢复为「无 key 即禁用」。
     """
     global _bocha_api_key, _bocha_count
 
@@ -100,7 +107,8 @@ def init(engine_settings):
     except (TypeError, ValueError):
         _bocha_count = 50
 
-    return True
+    # 无 key 时不启用引擎(searxng 会跳过它,不阻塞聚合)
+    return bool(_bocha_api_key)
 
 
 def request(query, params):
