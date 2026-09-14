@@ -1,0 +1,243 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# searxng-mcp-ext 的配置模板。
+#
+# 本文件在构建时被注入为 /usr/local/searxng/settings.template.yml。
+# 官方 entrypoint 首次启动时会把它复制到 /etc/searxng/settings.yml,
+# 并把 secret_key 里的 ultrasecretkey 占位符替换为随机值 —— 该占位符必须保留。
+#
+# 部署者可以挂载自己的 settings.yml 覆盖 /etc/searxng/settings.yml,
+# 此时官方 entrypoint 检测到文件已存在,不会覆盖。
+
+# 仅保留下方 engines 清单内的引擎,其余上游默认引擎全部排除。
+use_default_settings:
+  engines:
+    keep_only:
+      # 通用
+      - google
+      - bing
+      - duckduckgo
+      - baidu
+      - 360search
+      - sogou
+      - quark
+      - braveapi
+      - bocha
+      # 技术
+      - github
+      - github code
+      - baidu kaifa
+      # 视频
+      - bilibili
+      - iqiyi
+      - acfun
+      - 360search videos
+      - sogou videos
+      # 新闻
+      - sogou wechat
+      - chinaso news
+      # 图片
+      - baidu images
+      - quark images
+      - sogou images
+
+server:
+  secret_key: "ultrasecretkey"
+  # 限流交给部署者自己的反向代理/网关承担,因此关闭内置 limiter。
+  # 这样也避免了 valkey 依赖 —— 本镜像不附带任何外部存储。
+  limiter: false
+  image_proxy: true
+
+search:
+  safe_search: 1
+  # 必须显式声明 json,否则 /search?format=json 返回 403。
+  formats: [html, json, csv, rss]
+  default_lang: "auto"
+
+outgoing:
+  request_timeout: 10.0
+  pool_connections: 20
+  pool_maxsize: 20
+  max_retries: 2
+  enable_http: true
+
+engines:
+  # ======================== 通用搜索 ========================
+
+  - name: google
+    engine: google
+    shortcut: go
+    categories: [general]
+    disabled: false
+    weight: 1.0
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    categories: [general]
+    disabled: false
+    weight: 1.0
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    categories: [general]
+    disabled: false
+    weight: 1.0
+
+  # ---------- 中文通用搜索 ----------
+
+  - name: baidu
+    engine: baidu
+    shortcut: bd
+    baidu_category: general
+    categories: [general]
+    disabled: false
+    weight: 1.0
+
+  - name: 360search
+    engine: 360search
+    shortcut: 360so
+    categories: [general]
+    disabled: false
+    timeout: 20.0
+
+  - name: sogou
+    engine: sogou
+    shortcut: sogou
+    categories: [general]
+    disabled: false
+    timeout: 20.0
+
+  - name: quark
+    engine: quark
+    shortcut: qk
+    quark_category: general
+    categories: [general]
+    disabled: false
+    timeout: 20.0
+
+  # ---------- 付费兜底:博查 ----------
+  # 只用 web-search 端点,不用 ai-search。
+  # 密钥经环境变量 BOCHA_API_KEY 注入(引擎的 init() 直接读 env,不落配置文件);
+  # 未设置时该引擎不启用,不影响其余引擎聚合。
+  # 单次调用默认拉满 50 条,最大化付费调用的信息量。
+  - name: bocha
+    engine: bocha
+    shortcut: bch
+    categories: [general]
+    disabled: false
+    weight: 3.0
+    timeout: 10.0
+
+  # ---------- Brave Search API ----------
+  # 官方 API、稳定不被反爬,但需要 API key(2026-02 起取消免费档)。
+  # 默认不启用;挂载自己的 settings.yml 填入 api_key 后改为 inactive: false。
+  - name: braveapi
+    engine: braveapi
+    shortcut: bv
+    categories: [general]
+    inactive: true
+    api_key: ""
+
+  # ======================== 技术 ========================
+
+  - name: github
+    engine: github
+    shortcut: gh
+    categories: [it, repos]
+    disabled: false
+
+  # GitHub 代码搜索:匿名模式(限流较严)。
+  # 如需提高配额,挂载自己的 settings.yml,把 type 改为
+  # personal_access_token 并填入 token。
+  #
+  # inactive 必须显式置 false —— 上游默认定义里它是 true(因为默认要求 token),
+  # 而本文件的 engines 段只做「按名字合并」,不写的键会保留上游默认值。
+  - name: github code
+    engine: github_code
+    shortcut: ghc
+    categories: [it, code]
+    disabled: false
+    inactive: false
+    ghc_auth:
+      type: "none"
+
+  - name: baidu kaifa
+    engine: baidu
+    shortcut: bdk
+    baidu_category: it
+    categories: [it]
+    disabled: false
+
+  # ======================== 视频 ========================
+
+  - name: bilibili
+    engine: bilibili
+    shortcut: bil
+    disabled: false
+
+  - name: iqiyi
+    engine: iqiyi
+    shortcut: iq
+    disabled: false
+
+  - name: acfun
+    engine: acfun
+    shortcut: acf
+    disabled: false
+
+  - name: 360search videos
+    engine: 360search_videos
+    shortcut: 360sov
+    disabled: false
+
+  - name: sogou videos
+    engine: sogou_videos
+    shortcut: sogouv
+    disabled: false
+
+  # ======================== 新闻 ========================
+
+  # 微信公众号文章搜索
+  - name: sogou wechat
+    engine: sogou_wechat
+    shortcut: sogouw
+    disabled: false
+
+  # 中国搜索(ChinaSo)。
+  #
+  # 注意:该引擎返回的 URL 是 chinaso.com/link?url=<加密串> 形式的跳转链接,
+  # 不是真实地址,且无法在本地解码(上游 issue #4694 仍 open)。
+  # 因此它的结果会被标注 fetch_url_mode="browser",由下游抓取工具用浏览器解开,
+  # 而不是在搜索路径上做同步解析(实测同步解析会超时)。
+  #
+  # 上游默认 inactive: true,此处必须显式覆盖,否则引擎不会启用。
+  - name: chinaso news
+    engine: chinaso
+    shortcut: chinaso
+    categories: [news]
+    chinaso_news_source: all
+    disabled: false
+    inactive: false
+
+  # ======================== 图片 ========================
+
+  - name: baidu images
+    engine: baidu
+    shortcut: bdi
+    baidu_category: images
+    categories: [images]
+    disabled: false
+
+  - name: quark images
+    engine: quark
+    shortcut: qki
+    quark_category: images
+    categories: [images]
+    disabled: false
+
+  - name: sogou images
+    engine: sogou_images
+    shortcut: sogoui
+    disabled: false

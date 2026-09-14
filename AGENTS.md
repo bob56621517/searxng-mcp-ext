@@ -6,6 +6,10 @@
 
 ## Agent skills
 
+## Grilling
+
+一个问题带着一个推荐答案提问,不要一次性提问3个以上的问题.  
+
 ### Issue tracker
 
 issue 与 spec 作为 GitHub Issues 存放在 `bob56621517/searxng-mcp-ext`,统一用 `gh` CLI 操作。见 `docs/agents/issue-tracker.md`。

@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# searxng-mcp-ext —— 单容器部署。
+#
+# 用法:
+#   docker compose up -d
+#
+# 起好后:
+#   SearXNG 界面   http://localhost:8080/
+#   MCP 端点       http://localhost:8080/ext/mcp   (Streamable HTTP)
+#
+# 注意:本文件引用的是 CI 构建好的镜像,不是本地构建 —— 部署者不需要
+# 容器构建工具链。想自己构建请用同目录的 Dockerfile。
+
+services:
+  searxng-mcp-ext:
+    image: ghcr.io/bob56621517/searxng-mcp-ext:latest
+    container_name: searxng-mcp-ext
+    restart: unless-stopped
+
+    ports:
+      - "${PORT:-8080}:8080"
+
+    environment:
+      # 博查(bocha)API key,可选。
+      # 不设置时该引擎不可用(请求会返回 401),其余引擎照常工作。
+      # 该 key 由引擎直接读环境变量,不落配置文件。
+      BOCHA_API_KEY: "${BOCHA_API_KEY:-}"
+
+      # 经变量名覆盖 SearXNG 的监听端口。留空则用镜像内的 8080。
+      # 通常不需要动 —— 改外部映射用上面的 PORT 即可。
+
+    # 可选:覆盖镜像内的默认配置。
+    # 镜像自带的 settings.yml 已经配好中文引擎清单与 JSON 输出格式;
+    # 只有当你要改引擎、加密钥(如 braveapi / github code)时才需要挂载。
+    # 文件存在时官方 entrypoint 不会覆盖它。
+    #
+    # volumes:
+    #   - ./settings.yml:/etc/searxng/settings.yml:ro
+
+    healthcheck:
+      # /healthz 不经过 limiter,不会被限流拦成 4xx
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
