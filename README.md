@@ -19,9 +19,11 @@ docker compose up -d
 
 | | |
 |---|---|
-| 搜索界面 | <http://localhost:8080/> |
-| JSON API | <http://localhost:8080/search?format=json&q=hello> |
-| **MCP 端点** | **<http://localhost:8080/ext/mcp>** *(Streamable HTTP)* |
+| 搜索界面 | <http://localhost:8888/> |
+| JSON API | <http://localhost:8888/search?format=json&q=hello> |
+| **MCP 端点** | **<http://localhost:8888/ext/mcp>** *(Streamable HTTP)* |
+
+容器内固定监听 `8080`,宿主侧由 `PORT` 控制(默认 `8888`)。
 
 > `docker-compose.yml` 引用的是 CI 构建好的镜像,**不需要本地构建工具链**。想自己构建用同目录的 `Dockerfile`。
 
@@ -34,7 +36,7 @@ docker compose up -d
   "mcpServers": {
     "searxng": {
       "type": "http",
-      "url": "http://localhost:8080/ext/mcp"
+      "url": "http://localhost:8888/ext/mcp"
     }
   }
 }
@@ -81,7 +83,7 @@ images  : baidu images, quark images, sogou images
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
 | `BOCHA_API_KEY` | (空) | 博查 API key |
-| `PORT` | `8080` | 对外映射端口 |
+| `PORT` | `8888` | 宿主侧映射端口(容器内固定 8080) |
 
 要改引擎清单、或者给 `braveapi` / `github code` 填密钥,挂载自己的配置文件:
 

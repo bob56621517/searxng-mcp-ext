@@ -6,8 +6,8 @@
 #   docker compose up -d
 #
 # 起好后:
-#   SearXNG 界面   http://localhost:8080/
-#   MCP 端点       http://localhost:8080/ext/mcp   (Streamable HTTP)
+#   SearXNG 界面   http://localhost:8888/
+#   MCP 端点       http://localhost:8888/ext/mcp   (Streamable HTTP)
 #
 # 注意:本文件引用的是 CI 构建好的镜像,不是本地构建 —— 部署者不需要
 # 容器构建工具链。想自己构建请用同目录的 Dockerfile。
@@ -18,8 +18,9 @@ services:
     container_name: searxng-mcp-ext
     restart: unless-stopped
 
+    # 容器内固定监听 8080;宿主侧默认 8888,可用 PORT 覆盖。
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-8888}:8080"
 
     environment:
       # 博查(bocha)API key,可选。
