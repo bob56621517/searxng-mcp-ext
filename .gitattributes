@@ -1,0 +1,9 @@
+# 容器内运行的是 Linux,行尾必须是 LF。
+# Windows 上 Git 默认的 autocrlf 会把文本转成 CRLF,导致脚本在容器里报
+# "bad interpreter"。
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gz binary
+*.zip binary
